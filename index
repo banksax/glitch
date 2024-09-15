@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Student Attendance Check</title>
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+
+  <!-- jQuery -->
+  <script src="https://code.jquery.com/jquery-3.6.0.js"></script>
+
+  <!-- Sweet Alert -->
+  <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- Loading Overlay -->
+  <script src="https://cdn.jsdelivr.net/npm/gasparesganga-jquery-loading-overlay@2.1.7/dist/loadingoverlay.min.js"></script>
+  <style>
+  th:nth-child(2), td:nth-child(2) {
+    white-space: nowrap; /* ป้องกันการตัดบรรทัด */
+    width: 50%; /* ปรับความกว้างตามที่ต้องการ */
+  }
+</style>
+  <style>
+  /* ทำให้เช็คบ็อกซ์อยู่กึ่งกลางทั้งแนวตั้งและแนวนอน */
+  td, th {
+    text-align: center;
+    vertical-align: middle;
+  }
+
+  /* ป้องกันไม่ให้ชื่อนักเรียนถูกตัดบรรทัด */
+  th:nth-child(2), td:nth-child(2) {
+    white-space: nowrap;
+    text-align: left; /* จัดให้ชื่อนักเรียนอยู่ชิดซ้าย */
+  }
+    
+</style>
+
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai');
+
+    * {
+      box-sizing: border-box;
+      font-family: 'Noto Sans Thai', sans-serif;
+    }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      background: rgb(252, 233, 233);
+      background: linear-gradient(0deg, rgba(252, 233, 233, 1) 0%, rgba(224, 244, 241, 1) 26%, rgba(255, 255, 255, 1) 71%);
+      -webkit-background-size: cover;
+      -moz-background-size: cover;
+      -o-background-size: cover;
+      flex-direction: column;
+    }
+
+    .list {
+      background-color: #ffffff;
+      padding: 1.8em 1.2em;
+      box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+      border-radius: 0.6em;
+    }
+
+    footer {
+      margin-top: 10px;
+      background-color: #000;
+      width: 100%;
+      padding: 2px;
+      position: fixed;
+      bottom: 0;
+    }
+
+    footer p,
+    footer a {
+      text-decoration: none;
+      margin: 0;
+    }
+
+    footer .fa {
+      color: #fff740;
+    }
+  </style>
+</head>
+<body>
+  <center class="mb-4">
+    <img src="https://raw.githubusercontent.com/banksax/photo/main/%E0%B9%82%E0%B8%A3%E0%B8%87%E0%B9%80%E0%B8%A3%E0%B8%B5%E0%B8%A2%E0%B8%99%E0%B8%9A%E0%B9%89%E0%B8%B2%E0%B8%99%E0%B8%84%E0%B8%A5%E0%B8%AD%E0%B8%87%20%E0%B9%91%E0%B9%94%20(1).png" class="mt-4" style="width:200px; height:auto; padding-bottom: 10px;">
+    <h2>Student Attendance Apps</h2>
+    <h5 class="text-center text-danger">สื่อ และนวัตกรรมครูสิทธิชาติ สิทธิ</h5>
+  </center>
+
+  <main class="container">
+    <div class="container list">
+      <div class="d-flex justify-content-center mb-3">
+     <select id="sheet-selector" class="form-select me-2">
+  <option value="">กรุณาเลือกชีท</option>
+</select>
+
+        
+      </div>
+
+    <form id="attendance-form" class="mt-4">
+  <div class="row mb-3">
+    <label class="col-form-label">เลือกวันที่:</label>
+    <input type="date" id="attendance-date" class="form-control" required>
+  </div>
+  <div class="row mb-3">
+  <label class="col-form-label">รายชื่อนักเรียน:</label>
+</div>
+   
+<div class="table-responsive">
+  <table class="table table-bordered" id="student-list-table">
+    <thead>
+      <tr>
+        <th style="width: 5%;">ที่</th>
+        <th style="width: 50%; white-space: nowrap;">รายชื่อนักเรียน</th> <!-- ป้องกันการตัดบรรทัด -->
+        <th style="width: 15%;">
+          <button id="check-all-present" class="btn btn-primary btn-sm">มา</button>
+        </th>
+        <th style="width: 15%;">
+          <button id="check-all-absent" class="btn btn-secondary btn-sm">ขาด</button>
+        </th>
+        <th style="width: 15%;">
+          <button id="check-all-leave" class="btn btn-warning btn-sm">ลา</button>
+        </th>
+        <th style="width: 15%;">
+          <button id="check-all-late" class="btn btn-danger btn-sm">สาย</button>
+        </th>
+      </tr>
+    </thead>
+    <tbody id="student-list">
+      <!-- จะเพิ่มแถวของนักเรียนที่นี่ -->
+    </tbody>
+  </table>
+</div>
+
+
+
+  <center><button type="submit" class="btn btn-primary mt-3">Submit Attendance</button></center>
+</form>
+
+      <center><button id="send-summary" class="btn btn-success mt-3">Share Target Picker</button></center>
+    </div>
+  </main>
+
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/sanwithz/SetFooter/sanzwithz.js"></script>
+
+  <script>
+    let attendanceRecords = [];
+    const sheetSelector = document.getElementById('sheet-selector');
+    let studentListUrl = '';
+
+window.onload = function() {
+  liff.init({ liffId: '2006312722-XMYaY5Bm' })  // เพิ่มid liff
+    .then(() => {
+      if (!liff.isLoggedIn()) {
+        liff.login();
+      } else {
+        console.log('LIFF initialized');
+        fetchSheetNames(); // เรียกฟังก์ชันดึงชื่อชีทตั้งแต่ชีทที่ 4
+        addEventListeners();
+      }
+    })
+    .catch((err) => {
+      console.error('Error initializing LIFF: ', err);
+      Swal.fire('Error', 'Failed to initialize LIFF: ' + err, 'error');
+    });
+};
+
+// ฟังก์ชันสำหรับดึงชื่อชีทจาก Google Apps Script
+function fetchSheetNames() {
+  const url = 'https://script.google.com/macros/s/AKfycbxLZBNm7ENHOn-GrHvbJcg9TmDEGhLw2GbqugMAUvs9WG7qgQaOh5LorulPeF-LqvoZJQ/exec'; // URL ของ Apps Script
+
+  fetch(url)
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      return response.json(); // แปลงข้อมูลชีทที่ได้รับเป็น JSON
+    })
+    .then(sheetNames => {
+      const sheetSelector = document.getElementById('sheet-selector');
+      sheetSelector.innerHTML = ''; // ล้างดรอปดาวเก่าออกก่อน
+      sheetSelector.innerHTML = '<option value="">กรุณาเลือกชีท</option>'; // เพิ่มตัวเลือกค่าเริ่มต้น
+      sheetNames.forEach(sheetName => {
+        const option = document.createElement('option');
+        option.value = sheetName;
+        option.textContent = sheetName;
+        sheetSelector.appendChild(option);
+      });
+    })
+    .catch(error => {
+      console.error('Error fetching sheet names:', error);
+    });
+}
+
+
+
+    function addEventListeners() {
+      sheetSelector.addEventListener('change', function() {
+        const selectedSheet = sheetSelector.value;
+        if (selectedSheet) {
+          studentListUrl = `https://opensheet.elk.sh/1eajpme8P3Rj_jcIsaejrQMXfRHp19XeldSMl9l37FG4/${selectedSheet}`;  // เพิ่มid sheet
+          fetchStudentList();
+          enableButtons();
+        } else {
+          Swal.fire('Error', 'กรุณาเลือกชีทก่อน', 'error');
+          disableButtons();
+                    enableButtons();
+
+        }
+      });
+
+      document.getElementById('attendance-form').addEventListener('submit', addAttendanceRecord);
+      document.getElementById('send-summary').addEventListener('click', sendSummary);
+          document.getElementById('check-all-present').addEventListener('click', () => checkAll('มา'));
+      document.getElementById('check-all-absent').addEventListener('click', () => checkAll('ขาด'));
+      document.getElementById('check-all-leave').addEventListener('click', () => checkAll('ลา'));
+      document.getElementById('check-all-late').addEventListener('click', () => checkAll('สาย'));
+    
+    }
+    
+    function checkAll(status) {
+  const studentList = document.getElementById('student-list');
+  const radios = studentList.querySelectorAll(`input[value="${status}"]`);
+  radios.forEach(radio => radio.checked = true);
+}
+
+// การเช็คทุกคน "มา"
+document.getElementById('check-all-present').addEventListener('click', function(event) {
+  event.preventDefault();  // ป้องกันการบันทึก
+  checkAll('มา');
+});
+
+// การเช็คทุกคน "ขาด"
+document.getElementById('check-all-absent').addEventListener('click', function(event) {
+  event.preventDefault();  // ป้องกันการบันทึก
+  checkAll('ขาด');
+});
+
+// การเช็คทุกคน "ลา"
+document.getElementById('check-all-leave').addEventListener('click', function(event) {
+  event.preventDefault();  // ป้องกันการบันทึก
+  checkAll('ลา');
+});
+
+// การเช็คทุกคน "สาย"
+document.getElementById('check-all-late').addEventListener('click', function(event) {
+  event.preventDefault();  // ป้องกันการบันทึก
+  checkAll('สาย');
+});
+
+
+    function enableButtons() {
+      document.getElementById('check-all-present').disabled = false;
+      document.getElementById('check-all-absent').disabled = false;
+      document.getElementById('check-all-leave').disabled = false;
+      document.getElementById('check-all-late').disabled = false;
+    }
+
+    function disableButtons() {
+      document.getElementById('check-all-present').disabled = true;
+      document.getElementById('check-all-absent').disabled = true;
+      document.getElementById('check-all-leave').disabled = true;
+      document.getElementById('check-all-late').disabled = true;
+    }
+
+function fetchStudentList() {
+  fetch(studentListUrl)
+    .then(response => {
+      // ตรวจสอบสถานะการตอบกลับจากเซิร์ฟเวอร์
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+      // ตรวจสอบว่าเนื้อหาที่ตอบกลับเป็น JSON
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        return response.json(); // แปลงข้อมูลเป็น JSON
+      } else {
+        throw new Error("Received non-JSON response");
+      }
+    })
+    .then(data => generateStudentList(data))
+    .catch(error => {
+      console.error('Error fetching student list: ', error);
+    });
+}
+
+
+
+function generateStudentList(students) {
+  const studentList = document.getElementById('student-list');
+  studentList.innerHTML = ''; // Clear existing list
+
+  students.forEach(student => {
+    const studentRow = `
+      <tr>
+        <td>${student['เลขที่']}</td>
+        <td data-student-id="${student['รหัสนักเรียน']}">${student['รายชื่อนักเรียน']}</td>
+        <td><input type="radio" name="student${student['เลขที่']}" value="มา" checked required></td> 
+        <td><input type="radio" name="student${student['เลขที่']}" value="ขาด" required></td>
+        <td><input type="radio" name="student${student['เลขที่']}" value="ลา" required></td>
+        <td><input type="radio" name="student${student['เลขที่']}" value="สาย" required></td>
+      </tr>
+    `;
+    studentList.innerHTML += studentRow;
+  });
+}
+
+
+
+    function checkAll(status) {
+      const studentList = document.getElementById('student-list');
+      const radios = studentList.querySelectorAll(`input[value="${status}"]`);
+      radios.forEach(radio => radio.checked = true);
+    }
+
+function formatDateToThai(dateString) {
+  const months = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+  const date = new Date(dateString);
+  const day = date.getDate();
+  const month = months[date.getMonth()];
+  const year = date.getFullYear() + 543; // แปลงเป็นพุทธศักราช
+
+  return `${day} ${month} ${year}`;
+}
+
+function addAttendanceRecord(event) {
+  event.preventDefault();
+  attendanceRecords = [];
+  let allSelected = true;
+
+  const attendanceDate = document.getElementById('attendance-date').value;
+  if (!attendanceDate) {
+    Swal.fire('Error', 'กรุณาเลือกวันที่', 'error');
+    return;
+  }
+
+  const formattedDate = formatDateToThai(attendanceDate); // แปลงวันที่เป็นรูปแบบไทย
+
+  const studentList = document.getElementById('student-list');
+  const studentRows = studentList.querySelectorAll('tr');
+
+  studentRows.forEach(row => {
+    const studentId = row.querySelector('td[data-student-id]').getAttribute('data-student-id');
+    const studentName = row.querySelector('td[data-student-id]').innerText;
+    const studentStatusElement = row.querySelector('input[type="radio"]:checked');
+
+    if (studentStatusElement) {
+      const studentStatus = studentStatusElement.value;
+      attendanceRecords.push({
+        studentId: studentId,
+        name: studentName,
+        status: studentStatus,
+        date: formattedDate // ใช้วันที่ที่ถูกแปลงแล้ว
+      });
+    } else {
+      allSelected = false;
+    }
+  });
+
+  if (allSelected) {
+    saveToSheet(attendanceRecords); // ส่งไปยังฟังก์ชัน saveToSheet
+  } else {
+    Swal.fire('Error', 'กรุณากรอกสถานะการมาเรียนของนักเรียนทุกคน!', 'error');
+  }
+}
+
+
+
+
+
+
+function saveToSheet(records) {
+  console.log("Attendance Records being sent to GAS:", records); // แสดงค่าที่บันทึกส่งไปยัง GAS
+
+  $.LoadingOverlay("show");
+
+  const sheetName = $('#sheet-selector').val();  // ชื่อชีทที่เลือกจาก dropdown
+  const url = 'https://script.google.com/macros/s/AKfycbxLZBNm7ENHOn-GrHvbJcg9TmDEGhLw2GbqugMAUvs9WG7qgQaOh5LorulPeF-LqvoZJQ/exec'; // URL ของ Google Apps Script ที่จะใช้รับข้อมูล
+
+  $.post(url, {
+    data: JSON.stringify(records),  // ส่งข้อมูล attendance records
+    sheetName: sheetName            // ส่งชื่อชีทที่เลือก
+  }, function(data) {
+    $.LoadingOverlay("hide");
+    if (data.status === 'success') {
+      Swal.fire('Success', 'บันทึกข้อมูลเรียบร้อย', 'success').then(() => {
+        // รีเซ็ตฟอร์มเมื่อบันทึกสำเร็จ
+        $('#attendance-form')[0].reset();
+      });
+    } else {
+      Swal.fire('Error', 'Failed to save attendance data!', 'error');
+    }
+  }).fail(function() {
+    $.LoadingOverlay("hide");
+    Swal.fire('Error', 'Failed to connect to the server!', 'error');
+  });
+}
+
+
+
+
+    function sendSummary() {
+  if (attendanceRecords.length === 0) {
+    Swal.fire('Error', 'ไม่มีข้อมูลการเข้าชั้นเรียนเพื่อส่ง!', 'error');
+    return;
+  }
+
+  const presentCount = attendanceRecords.filter(record => record.status === 'มา').length;
+  const absentCount = attendanceRecords.filter(record => record.status === 'ขาด').length;
+  const leaveCount = attendanceRecords.filter(record => record.status === 'ลา').length;
+  const lateCount = attendanceRecords.filter(record => record.status === 'สาย').length;
+  const totalCount = attendanceRecords.length;
+  const presentPercentage = ((presentCount / totalCount) * 100).toFixed(2);
+  const absentPercentage = ((absentCount / totalCount) * 100).toFixed(2);
+  const leavePercentage = ((leaveCount / totalCount) * 100).toFixed(2);
+  const latePercentage = ((lateCount / totalCount) * 100).toFixed(2);
+
+  const flexMessage = {
+    type: 'flex',
+    altText: 'Attendance Summary',
+    contents: {
+      type: 'bubble',
+      size: 'giga',
+      body: {
+        type: 'box',
+        layout: 'vertical',
+        contents: [
+          {
+            type: 'text',
+            text: `สรุปการมาเรียน`,
+            weight: 'bold',
+            size: 'xl',
+            color: '#1DB446',
+            margin: 'md'
+          },
+      {
+  type: 'text',
+  text: `ชั้น ${$('#sheet-selector').val()}`, // ดึงค่าชื่อชีทจากดรอปดาว
+  size: 'md',
+  color: '#888888'
+},
+{
+  type: 'text',
+  text: `วันที่ ${attendanceRecords[0].date}`, // ดึงค่าวันที่จาก attendanceRecords
+  size: 'md',
+  color: '#888888'
+},
+
+
+
+          {
+            type: 'separator',
+            margin: 'md'
+          },
+          {
+            type: 'box',
+            layout: 'vertical',
+            margin: 'md',
+            spacing: 'sm',
+  contents: attendanceRecords.map((record, index) => ({
+              type: 'box',
+              layout: 'horizontal',
+              contents: [
+                {
+                  type: 'text',
+        text: `${index + 1}. ${record.name}`,  
+                  size: 'md',
+                  color: '#555555',
+                  flex: 4
+                },
+                {
+                  type: 'text',
+                  text: record.status,
+                  size: 'md',
+                  color:
+                    record.status === 'มา'
+                      ? '#1DB446'
+                      : record.status === 'ขาด'
+                      ? '#FF5555'
+                      : record.status === 'ลา'
+                      ? '#FFC107'
+                      : '#FF8800',
+                  flex: 2,
+                  align: 'end'
+                }
+              ]
+            }))
+          },
+          {
+            type: 'separator',
+            margin: 'md'
+          },
+          {
+            type: 'box',
+            layout: 'vertical',
+            margin: 'md',
+            contents: [
+              {
+                type: 'box',
+                layout: 'horizontal',
+                contents: [
+                  {
+                    type: 'text',
+                    text: 'มาเรียน:',
+                    size: 'md',
+                    color: '#1DB446',
+                    flex: 3
+                  },
+                  {
+                    type: 'text',
+                    text: `${presentCount} คน (${presentPercentage}%)`,
+                    size: 'md',
+                    color: '#1DB446',
+                    flex: 2,
+                    align: 'end'
+                  }
+                ]
+              },
+              {
+                type: 'box',
+                layout: 'horizontal',
+                contents: [
+                  {
+                    type: 'text',
+                    text: 'ขาดเรียน:',
+                    size: 'md',
+                    color: '#FF5555',
+                    flex: 3
+                  },
+                  {
+                    type: 'text',
+                    text: `${absentCount} คน (${absentPercentage}%)`,
+                    size: 'md',
+                    color: '#FF5555',
+                    flex: 2,
+                    align: 'end'
+                  }
+                ]
+              },
+              {
+                type: 'box',
+                layout: 'horizontal',
+                contents: [
+                  {
+                    type: 'text',
+                    text: 'ลา:',
+                    size: 'md',
+                    color: '#FFC107',
+                    flex: 3
+                  },
+                  {
+                    type: 'text',
+                    text: `${leaveCount} คน (${leavePercentage}%)`,
+                    size: 'md',
+                    color: '#FFC107',
+                    flex: 2,
+                    align: 'end'
+                  }
+                ]
+              },
+              {
+                type: 'box',
+                layout: 'horizontal',
+                contents: [
+                  {
+                    type: 'text',
+                    text: 'สาย:',
+                    size: 'md',
+                    color: '#FF8800',
+                    flex: 3
+                  },
+                  {
+                    type: 'text',
+                    text: `${lateCount} คน (${latePercentage}%)`,
+                    size: 'md',
+                    color: '#FF8800',
+                    flex: 2,
+                    align: 'end'
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      styles: {
+        footer: {
+          separator: true
+        }
+      }
+    }
+  };
+
+  liff.shareTargetPicker([flexMessage])
+    .then((result) => {
+      if (result) {
+        Swal.fire('Success', 'แชร์สรุปการมาเรียนเรียบร้อย!', 'success');
+      } else {
+        Swal.fire('Info', 'ปิดการแชร์โดยไม่ได้ส่งข้อความ', 'info');
+      }
+      // คุณสามารถเลือกที่จะปิดหน้าต่างหรือไม่ก็ได้
+      // liff.closeWindow();
+    })
+    .catch((error) => {
+      Swal.fire('Error', 'เกิดข้อผิดพลาดในการแชร์สรุปการมาเรียน: ' + error, 'error');
+    });
+}
+
+  </script>
+
+  <footer class="text-center text-lg-start bg-light text-muted" style="position: static; left: 0; bottom: 0; width: 100%;">
+    <div class="footer-container"></div>
+  </footer>
+</body>
+</html>
