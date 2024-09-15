@@ -1,0 +1,42 @@
+function doPost(e) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(e.parameter.sheetName); // ดึงชื่อชีทที่เลือก
+  const data = JSON.parse(e.parameter.data); // ข้อมูลที่รับจาก client
+  
+  const dateString = data[0].date; // วันที่ที่ส่งมาจากฟอร์ม
+  
+  // ดึงค่าหัวตาราง (แถวแรก) ทั้งหมด เพื่อตรวจสอบวันที่
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  
+  // หาตำแหน่งคอลัมน์ที่มีวันที่ตรงกับ dateString
+  let columnIndex = headers.indexOf(dateString) + 1; // บวก 1 เพื่อให้เป็นตำแหน่งคอลัมน์ในชีท
+
+  if (columnIndex === 0) {
+    // ถ้าไม่พบวันที่ในหัวตาราง ให้เพิ่มคอลัมน์ใหม่สำหรับวันที่นี้
+    columnIndex = sheet.getLastColumn() + 1;
+    sheet.getRange(1, columnIndex).setValue(dateString); // บันทึกวันที่ในหัวตาราง
+  }
+
+  // ดึงข้อมูลคอลัมน์รหัสนักเรียนทั้งหมด (สมมติว่ารหัสนักเรียนอยู่ในคอลัมน์ที่ 2)
+  const studentIds = sheet.getRange(2, 2, sheet.getLastRow() - 1).getValues().flat();
+
+  // บันทึกสถานะการมาเรียนในแถวที่มีรหัสนักเรียนตรงกับข้อมูลที่ส่งมา
+  data.forEach(record => {
+    const studentId = record.studentId.trim(); // Trim studentId to ensure no spaces
+    const status = record.status;
+
+    // หาตำแหน่งแถวที่มีรหัสนักเรียนตรงกับข้อมูลที่ส่งมา
+    const rowIndex = studentIds.indexOf(studentId) + 2; // บวก 2 เพื่อชดเชยหัวข้อในแถวที่ 1 และเริ่มแถวที่ 2
+
+    if (rowIndex > 1) {
+      // บันทึกสถานะการมาเรียนในแถวที่พบ
+      sheet.getRange(rowIndex, columnIndex).setValue(status);
+    }
+  });
+
+  return ContentService.createTextOutput(JSON.stringify({ status: 'success' })).setMimeType(ContentService.MimeType.JSON);
+}
+function doGet() {
+  const sheets = SpreadsheetApp.getActiveSpreadsheet().getSheets();
+  const sheetNames = sheets.slice(4).map(sheet => sheet.getName()); // slice(4) จะเริ่มดึงตั้งแต่ชีทที่ 5
+  return ContentService.createTextOutput(JSON.stringify(sheetNames)).setMimeType(ContentService.MimeType.JSON);
+}
