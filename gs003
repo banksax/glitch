@@ -1,0 +1,34 @@
+function doPost(e) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(e.parameter.sheetName); 
+  const data = JSON.parse(e.parameter.data); 
+
+  const dateString = data[0].date; 
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  let columnIndex = headers.indexOf(dateString) + 1;
+
+  if (columnIndex === 0) {
+    columnIndex = sheet.getLastColumn() + 1;
+    sheet.getRange(1, columnIndex).setValue(dateString); 
+  }
+
+  const studentIds = sheet.getRange(2, 2, sheet.getLastRow() - 1).getValues().flat();
+
+  const updates = data.map(record => {
+    const rowIndex = studentIds.indexOf(record.studentId.trim()) + 2;
+    return [rowIndex, columnIndex, record.status];
+  }).filter(update => update[0] > 1); 
+
+  updates.forEach(update => {
+    sheet.getRange(update[0], update[1]).setValue(update[2]);
+  });
+
+  return ContentService.createTextOutput(JSON.stringify({ status: 'success' })).setMimeType(ContentService.MimeType.JSON);
+}
+
+
+
+function doGet() {
+  const sheets = SpreadsheetApp.getActiveSpreadsheet().getSheets();
+  const sheetNames = sheets.slice(4).map(sheet => sheet.getName()); // slice(4) จะเริ่มดึงตั้งแต่ชีทที่ 5
+  return ContentService.createTextOutput(JSON.stringify(sheetNames)).setMimeType(ContentService.MimeType.JSON);
+}
