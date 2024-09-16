@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Attendance Check</title>
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+  
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.2.0/css/all.min.css">
+
+  <!-- jQuery -->
+  <script src="https://code.jquery.com/jquery-3.6.0.js"></script>
+
+  <!-- Sweet Alert -->
+  <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- Loading Overlay -->
+  <script src="https://cdn.jsdelivr.net/npm/gasparesganga-jquery-loading-overlay@2.1.7/dist/loadingoverlay.min.js"></script>
+
+  <style>
+    /* ทำให้เช็คบ็อกซ์อยู่กึ่งกลางทั้งแนวตั้งและแนวนอน */
+    td, th {
+      text-align: center;
+      vertical-align: middle;
+    }
+
+    /* ป้องกันไม่ให้ชื่อนักเรียนถูกตัดบรรทัด */
+    th:nth-child(2), td:nth-child(2) {
+      white-space: nowrap;
+      text-align: left; /* จัดให้ชื่อนักเรียนอยู่ชิดซ้าย */
+      width: 50%; /* ปรับความกว้างตามที่ต้องการ */
+    }
+
+    /* จัดการรูปแบบทั่วไป */
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai');
+    * {
+      box-sizing: border-box;
+      font-family: 'Noto Sans Thai', sans-serif;
+    }
+
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+      background: rgb(252, 233, 233);
+      background: linear-gradient(0deg, rgba(252, 233, 233, 1) 0%, rgba(224, 244, 241, 1) 26%, rgba(255, 255, 255, 1) 71%);
+      -webkit-background-size: cover;
+      -moz-background-size: cover;
+      -o-background-size: cover;
+      flex-direction: column;
+    }
+
+    .list {
+      background-color: #ffffff;
+      padding: 1.8em 1.2em;
+      box-shadow: rgba(0, 0, 0, 0.24) 0px 3px 8px;
+      border-radius: 0.6em;
+    }
+
+    footer {
+      margin-top: 10px;
+      background-color: #000;
+      width: 100%;
+      padding: 2px;
+      position: fixed;
+      bottom: 0;
+    }
+
+    footer p, footer a {
+      text-decoration: none;
+      margin: 0;
+    }
+
+    footer .fa {
+      color: #fff740;
+    }
+  </style>
+</head>
+<body>
+  <center class="mb-4">
+    <img src="https://raw.githubusercontent.com/banksax/photo/main/%E0%B9%82%E0%B8%A3%E0%B8%87%E0%B9%80%E0%B8%A3%E0%B8%B5%E0%B8%A2%E0%B8%99%E0%B8%9A%E0%B9%89%E0%B8%B2%E0%B8%99%E0%B8%84%E0%B8%A5%E0%B8%AD%E0%B8%87%20%E0%B9%91%E0%B9%94%20(1).png" class="mt-4" style="width:200px; height:auto; padding-bottom: 10px;">
+    <h2>Student Attendance Apps</h2>
+    <h5 class="text-center text-danger">สื่อ และนวัตกรรมครูสิทธิชาติ สิทธิ</h5>
+  </center>
+
+  <main class="container">
+    <!-- ส่วนเลือกวันที่ -->
+    <div class="list p-3">
+      
+   <!-- ปุ่มสำหรับแสดงโมดัล -->
+<button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#roomStatusModal">
+  สถานะรายห้อง
+</button>
+      
+      
+      
+      <div class="mb-3">
+        <label for="attendance-date" class="form-label">เลือกวันที่:</label>
+        <input type="date" id="attendance-date" class="form-control" required>
+      </div>
+
+      <!-- ส่วนเลือกชั้นเรียน ซ่อนจนกว่าจะมีการเลือกวันที่ -->
+      <div id="class-select-container" class="mb-3" style="display: none;">
+        <div class="mb-3">
+          <label for="sheet-selector" class="form-label">ชั้น:</label>
+          <select id="sheet-selector" class="form-select">
+            <option value="">กรุณาเลือกชีท</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- ฟอร์มเช็คชื่อ -->
+    <form id="attendance-form" class="mt-4 list p-3">
+      <div class="row mb-3">
+        <label class="col-form-label">รายชื่อนักเรียน:</label>
+      </div>
+
+      <!-- ตารางรายชื่อนักเรียน -->
+      <div class="table-responsive">
+        <table class="table table-bordered" id="student-list-table">
+          <thead>
+            <tr>
+              <th style="width: 5%;">ที่</th>
+              <th style="width: 50%; white-space: nowrap;">รายชื่อนักเรียน</th>
+              <th style="width: 15%;">
+                <button type="button" id="check-all-present" class="btn btn-primary btn-sm">มา</button>
+              </th>
+              <th style="width: 15%;">
+                <button type="button" id="check-all-absent" class="btn btn-secondary btn-sm">ขาด</button>
+              </th>
+              <th style="width: 15%;">
+                <button type="button" id="check-all-leave" class="btn btn-warning btn-sm">ลา</button>
+              </th>
+              <th style="width: 15%;">
+                <button type="button" id="check-all-late" class="btn btn-danger btn-sm">สาย</button>
+              </th>
+            </tr>
+          </thead>
+          <tbody id="student-list">
+            <!-- รายชื่อนักเรียนจะถูกเพิ่มที่นี่โดย JavaScript -->
+          </tbody>
+        </table>
+      </div>
+
+      <!-- ปุ่มบันทึกการเช็คชื่อ -->
+      <center>
+        <button type="submit" class="btn btn-primary mt-3">Submit Attendance</button>
+      </center>
+    </form>
+  </main>
+<!-- โมดัลสำหรับแสดงอินพุตวันที่และเลือกชีท -->
+<div class="modal fade" id="roomStatusModal" tabindex="-1" aria-labelledby="roomStatusModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="roomStatusModalLabel">สถานะรายห้อง</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="room-status-form">
+          <div class="mb-3">
+            <label for="attendance-date-modal" class="form-label">เลือกวันที่:</label>
+            <input type="date" id="attendance-date-modal" class="form-control" required>
+          </div>
+
+          <div class="mb-3">
+            <label for="sheet-selector-modal" class="form-label">เลือกชีท:</label>
+            <select id="sheet-selector-modal" class="form-select" required>
+              <option value="">กรุณาเลือกชีท</option>
+              <!-- ชื่อชีทจะถูกเพิ่มโดย JavaScript -->
+            </select>
+          </div>
+
+          <!-- ปุ่มค้นหา -->
+          <div class="mb-3">
+            <button type="button" id="search-btn" class="btn btn-success">ค้นหา</button>
+          </div>
+
+          <!-- ตารางรายชื่อนักเรียน -->
+          <div class="table-responsive">
+            <table class="table table-bordered" id="student-list-table-modal">
+              <thead>
+                <tr>
+                  <th>ที่</th>
+                  <th>รายชื่อนักเรียน</th>
+                  <th>สถานะ</th>
+                </tr>
+              </thead>
+              <tbody id="student-list-modal">
+                <!-- รายชื่อนักเรียนจะถูกเพิ่มที่นี่โดย JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <!-- LIFF Script -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+  <script src="https://cdn.jsdelivr.net/gh/sanwithz/SetFooter/sanzwithz.js"></script>
+
+  <!-- สคริปต์หลัก -->
+  <script>
+   let attendanceForm;  // ประกาศตัวแปร attendanceForm ในขอบเขต global
+
+document.addEventListener("DOMContentLoaded", function() {
+  attendanceForm = document.querySelector('#attendance-form'); 
+  const sheetSelectorContainer = document.querySelector('#class-select-container');
+
+  // ซ่อนฟอร์มและตัวเลือกชั้นเรียนตั้งแต่เริ่มต้น
+  attendanceForm.style.display = 'none';
+  sheetSelectorContainer.style.display = 'none';
+
+  // ตรวจสอบการเปลี่ยนแปลงในวันที่ที่เลือก
+  document.getElementById('attendance-date').addEventListener('change', function() {
+    const selectedDate = this.value;
+    
+    
+    if (selectedDate) {
+      sheetSelectorContainer.style.display = 'flex';
+    } else {
+      sheetSelectorContainer.style.display = 'none';
+      attendanceForm.style.display = 'none';
+    }
+  });
+});
+    
+
+    // เมื่อผู้ใช้คลิกปุ่มค้นหา
+document.getElementById('search-btn').addEventListener('click', function() {
+  const selectedDate = document.getElementById('attendance-date-modal').value;
+  const selectedSheet = document.getElementById('sheet-selector-modal').value;
+
+  if (selectedDate && selectedSheet) {
+    // เรียกฟังก์ชันดึงข้อมูลนักเรียน
+    fetchStudentListModal(selectedSheet);
+  } else {
+    Swal.fire('Error', 'กรุณาเลือกวันที่และชีทก่อน', 'error');
+  }
+});
+
+document.getElementById('sheet-selector').addEventListener('change', async function() {
+    attendanceForm.style.display = '';  // ซ่อนฟอร์มก่อนเสมอเมื่อมีการเลือกชีท
+
+  const selectedDate = document.getElementById('attendance-date').value;
+  const selectedSheet = this.value;
+
+  // ตรวจสอบว่ามีการเลือกวันที่และชีทหรือไม่
+  if (selectedDate && selectedSheet) {
+    // ตรวจสอบข้อมูลซ้ำก่อน
+    const isDuplicate = await checkDuplicateAttendance(selectedDate, selectedSheet);
+    
+    if (!isDuplicate) {
+      // ถ้าไม่มีข้อมูลซ้ำ แสดงฟอร์มและดึงรายชื่อนักเรียน
+      fetchStudentList(); // ดึงรายชื่อนักเรียน
+      enableButtons();
+      attendanceForm.style.display = 'block'; // แสดงฟอร์ม
+    } else {
+      // ถ้ามีข้อมูลซ้ำ แสดงข้อความแจ้งเตือนและซ่อนฟอร์ม
+      attendanceForm.style.display = 'none'; 
+    }
+  } else {
+    Swal.fire('Error', 'กรุณาเลือกวันที่และชีทก่อน', 'error');
+    attendanceForm.style.display = 'none';
+  }
+});
+
+
+
+
+
+    // LIFF Initialization
+    window.onload = function() {
+      liff.init({ liffId: '2006312722-XMYaY5Bm' }) 
+        .then(() => {
+          if (!liff.isLoggedIn()) {
+            liff.login();
+          } else {
+            fetchSheetNames();
+            addEventListeners();
+          }
+        })
+        .catch((err) => {
+          Swal.fire('Error', 'Failed to initialize LIFF: ' + err, 'error');
+        });
+    };
+    
+    
+    // เมื่อเปิดโมดัลให้เรียกข้อมูลชีทและแสดง
+$('#roomStatusModal').on('shown.bs.modal', function () {
+  fetchSheetNamesModal();
+});
+
+    function fetchSheetNames() {
+      const url = 'https://script.google.com/macros/s/AKfycbxLZBNm7ENHOn-GrHvbJcg9TmDEGhLw2GbqugMAUvs9WG7qgQaOh5LorulPeF-LqvoZJQ/exec';
+      fetch(url)
+        .then(response => response.json())
+        .then(sheetNames => {
+          const sheetSelector = document.getElementById('sheet-selector');
+          sheetSelector.innerHTML = '<option value="">กรุณาเลือกชีท</option>';
+          sheetNames.forEach(sheetName => {
+            const option = document.createElement('option');
+            option.value = sheetName;
+            option.textContent = sheetName;
+            sheetSelector.appendChild(option);
+          });
+        })
+        .catch(error => console.error('Error fetching sheet names:', error));
+    }
+
+    function addEventListeners() {
+      const sheetSelector = document.getElementById('sheet-selector');
+      const attendanceForm = document.querySelector('#attendance-form');
+
+      sheetSelector.addEventListener('change', function() {
+        const selectedSheet = sheetSelector.value;
+        if (selectedSheet) {
+          studentListUrl = `https://opensheet.elk.sh/1eajpme8P3Rj_jcIsaejrQMXfRHp19XeldSMl9l37FG4/${selectedSheet}`;
+          fetchStudentList();
+          enableButtons();
+          attendanceForm.style.display = 'none';
+        } else {
+          Swal.fire('Error', 'กรุณาเลือกชีทก่อน', 'error');
+          disableButtons();
+          attendanceForm.style.display = 'none';
+        }
+      });
+
+      document.getElementById('attendance-form').addEventListener('submit', addAttendanceRecord);
+      document.getElementById('check-all-present').addEventListener('click', () => checkAll('มา'));
+      document.getElementById('check-all-absent').addEventListener('click', () => checkAll('ขาด'));
+      document.getElementById('check-all-leave').addEventListener('click', () => checkAll('ลา'));
+      document.getElementById('check-all-late').addEventListener('click', () => checkAll('สาย'));
+    }
+    
+async function checkDuplicateAttendance(selectedDate, selectedSheet) {
+  const url = 'https://script.google.com/macros/s/AKfycbxLZBNm7ENHOn-GrHvbJcg9TmDEGhLw2GbqugMAUvs9WG7qgQaOh5LorulPeF-LqvoZJQ/exec?date=' + selectedDate + '&sheetName=' + selectedSheet;
+
+  $.LoadingOverlay("show");
+
+  return fetch(url)
+    .then(response => response.json())
+    .then(data => {
+      $.LoadingOverlay("hide");
+
+      if (data.isDuplicate) {
+        Swal.fire({
+          title: 'ข้อมูลซ้ำ',
+          text: 'มีการบันทึกข้อมูลในวันที่นี้แล้ว คุณต้องการแก้ไขข้อมูลหรือไม่?',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'แก้ไข',
+          cancelButtonText: 'ยกเลิก'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            updateRadioButtons(data.attendanceRecords);
+            attendanceForm.style.display = 'block'; 
+          } else {
+            attendanceForm.style.display = 'none';
+          }
+        });
+        return true;
+      }
+      return false;
+    })
+    .catch(error => {
+      $.LoadingOverlay("hide");
+      console.error('Error checking duplicate attendance:', error);
+      return false;
+    });
+}
+
+function updateRadioButtons(attendanceRecords) {
+  attendanceRecords.forEach(record => {
+    const studentRow = document.querySelector(`td[data-student-id="${record.studentId}"]`).parentElement;
+    const statusRadio = studentRow.querySelector(`input[value="${record.status}"]`);
+    if (statusRadio) {
+      statusRadio.checked = true;
+    }
+  });
+}
+
+
+
+
+
+
+
+
+
+   function fetchStudentList() {
+      fetch(studentListUrl)
+        .then(response => response.json())
+        .then(data => generateStudentList(data))
+        .catch(error => console.error('Error fetching student list: ', error));
+    }
+
+
+    function generateStudentList(students) {
+      const studentList = document.getElementById('student-list');
+      studentList.innerHTML = '';
+
+      students.forEach(student => {
+        const studentRow = `
+          <tr>
+            <td>${student['เลขที่']}</td>
+            <td data-student-id="${student['รหัสนักเรียน']}">${student['รายชื่อนักเรียน']}</td>
+            <td><input type="radio" name="student${student['เลขที่']}" value="มา" checked required></td>
+            <td><input type="radio" name="student${student['เลขที่']}" value="ขาด" required></td>
+            <td><input type="radio" name="student${student['เลขที่']}" value="ลา" required></td>
+            <td><input type="radio" name="student${student['เลขที่']}" value="สาย" required></td>
+          </tr>
+        `;
+        studentList.innerHTML += studentRow;
+      });
+    }
+    
+    // ดึงชื่อชีทและเพิ่มลงใน select
+function fetchSheetNamesModal() {
+  const url = 'https://script.google.com/macros/s/AKfycbxLZBNm7ENHOn-GrHvbJcg9TmDEGhLw2GbqugMAUvs9WG7qgQaOh5LorulPeF-LqvoZJQ/exec';
+  fetch(url)
+    .then(response => response.json())
+    .then(sheetNames => {
+      const sheetSelector = document.getElementById('sheet-selector-modal');
+      sheetSelector.innerHTML = '<option value="">กรุณาเลือกชีท</option>';
+      sheetNames.forEach(sheetName => {
+        const option = document.createElement('option');
+        option.value = sheetName;
+        option.textContent = sheetName;
+        sheetSelector.appendChild(option);
+      });
+    })
+    .catch(error => console.error('Error fetching sheet names:', error));
+}
+    
+function fetchStudentListModal(sheetName) {
+  const selectedDate = document.getElementById('attendance-date-modal').value; // รับวันที่ที่เลือกจากโมดัล
+  const studentListUrl = `https://opensheet.elk.sh/1eajpme8P3Rj_jcIsaejrQMXfRHp19XeldSMl9l37FG4/${sheetName}`;
+  
+  fetch(studentListUrl)
+    .then(response => response.json())
+    .then(data => generateStudentListModal(data, selectedDate)) // ส่งวันที่ไปยังฟังก์ชัน generateStudentListModal
+    .catch(error => console.error('Error fetching student list: ', error));
+}
+
+function fetchStudentListModal(sheetName) {
+  const selectedDate = document.getElementById('attendance-date-modal').value; // รับวันที่จาก input date
+  const studentListUrl = `https://opensheet.elk.sh/1eajpme8P3Rj_jcIsaejrQMXfRHp19XeldSMl9l37FG4/${sheetName}`;
+  
+  fetch(studentListUrl)
+    .then(response => response.json())
+    .then(data => generateStudentListModal(data, selectedDate)) // ส่งข้อมูลนักเรียนและวันที่ไปยังฟังก์ชัน generateStudentListModal
+    .catch(error => console.error('Error fetching student list: ', error));
+}
+
+
+
+
+  
+  
+
+
+
+
+
+
+
+
+
+
+function generateStudentListModal(students, selectedDate) {
+  const studentList = document.getElementById('student-list-modal');
+  studentList.innerHTML = '';
+
+  // แปลงวันที่จาก input ให้ตรงกับฟอร์แมตใน Google Sheets
+  const date = new Date(selectedDate);
+  const day = date.getDate().toString();  // วันที่
+  const monthNames = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+  const month = monthNames[date.getMonth()];  // ชื่อเดือน
+  const year = date.getFullYear() + 543;  // ปี พ.ศ.
+
+  const formattedDate = `${day} ${month} ${year}`;  // ฟอร์แมตวันที่ เช่น "16 กันยายน 2567"
+
+  students.forEach(student => {
+    const status = student[formattedDate] || 'ไม่มีข้อมูล';  // ตรวจสอบสถานะในวันที่ที่เลือก
+
+    const studentRow = `
+      <tr>
+        <td>${student['เลขที่']}</td>
+        <td>${student['รายชื่อนักเรียน']}</td>
+        <td>${status}</td>  <!-- แสดงสถานะ เช่น มา, ลา, ขาด, หรือ สาย -->
+      </tr>
+    `;
+    studentList.innerHTML += studentRow;
+  });
+}
+
+
+
+    
+    
+
+    function checkAll(status) {
+      const radios = document.querySelectorAll(`input[value="${status}"]`);
+      radios.forEach(radio => radio.checked = true);
+    }
+
+    function enableButtons() {
+      document.getElementById('check-all-present').disabled = false;
+      document.getElementById('check-all-absent').disabled = false;
+      document.getElementById('check-all-leave').disabled = false;
+      document.getElementById('check-all-late').disabled = false;
+    }
+
+    function disableButtons() {
+      document.getElementById('check-all-present').disabled = true;
+      document.getElementById('check-all-absent').disabled = true;
+      document.getElementById('check-all-leave').disabled = true;
+      document.getElementById('check-all-late').disabled = true;
+    }
+
+    function addAttendanceRecord(event) {
+      event.preventDefault();
+      attendanceRecords = [];
+      let allSelected = true;
+
+      const attendanceDate = document.getElementById('attendance-date').value;
+      if (!attendanceDate) {
+        Swal.fire('Error', 'กรุณาเลือกวันที่', 'error');
+        return;
+      }
+
+      const formattedDate = formatDateToThai(attendanceDate);
+
+      const studentRows = document.querySelectorAll('#student-list tr');
+      studentRows.forEach(row => {
+        const studentId = row.querySelector('td[data-student-id]').getAttribute('data-student-id');
+        const studentName = row.querySelector('td[data-student-id]').innerText;
+        const studentStatusElement = row.querySelector('input[type="radio"]:checked');
+
+        if (studentStatusElement) {
+          const studentStatus = studentStatusElement.value;
+          attendanceRecords.push({
+            studentId: studentId,
+            name: studentName,
+            status: studentStatus,
+            date: formattedDate
+          });
+        } else {
+          allSelected = false;
+        }
+      });
+
+      if (allSelected) {
+        saveToSheet(attendanceRecords);
+      } else {
+        Swal.fire('Error', 'กรุณากรอกสถานะการมาเรียนของนักเรียนทุกคน!', 'error');
+      }
+    }
+
+    function saveToSheet(records) {
+      console.log("Attendance Records being sent to GAS:", records);
+      $.LoadingOverlay("show");
+
+      const sheetName = $('#sheet-selector').val();
+      const url = 'https://script.google.com/macros/s/AKfycbxLZBNm7ENHOn-GrHvbJcg9TmDEGhLw2GbqugMAUvs9WG7qgQaOh5LorulPeF-LqvoZJQ/exec';
+
+      $.post(url, { data: JSON.stringify(records), sheetName: sheetName }, function(data) {
+        $.LoadingOverlay("hide");
+        if (data.status === 'success') {
+          Swal.fire({
+            title: 'Success',
+            text: 'บันทึกข้อมูลเรียบร้อย ต้องการส่งไลน์หรือไม่?',
+            icon: 'success',
+            showCancelButton: true,
+            confirmButtonText: 'ส่งไลน์',
+            cancelButtonText: 'ไม่ส่ง'
+          }).then((result) => {
+            if (result.isConfirmed) {
+              sendSummary();
+            }
+            $('#attendance-form')[0].reset();
+            $('#sheet-selector').val('');
+            $('#attendance-form').hide();
+          });
+        } else {
+          Swal.fire('Error', 'Failed to save attendance data!', 'error');
+        }
+      }).fail(function() {
+        $.LoadingOverlay("hide");
+        Swal.fire('Error', 'Failed to connect to the server!', 'error');
+      });
+    }
+
+    function formatDateToThai(dateString) {
+      const months = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+      const date = new Date(dateString);
+      const day = date.getDate();
+      const month = months[date.getMonth()];
+      const year = date.getFullYear() + 543;
+      return `${day} ${month} ${year}`;
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    function sendSummary() {
+      const presentCount = attendanceRecords.filter(record => record.status === 'มา').length;
+      const absentCount = attendanceRecords.filter(record => record.status === 'ขาด').length;
+      const leaveCount = attendanceRecords.filter(record => record.status === 'ลา').length;
+      const lateCount = attendanceRecords.filter(record => record.status === 'สาย').length;
+      const totalCount = attendanceRecords.length;
+      const presentPercentage = ((presentCount / totalCount) * 100).toFixed(2);
+      const absentPercentage = ((absentCount / totalCount) * 100).toFixed(2);
+      const leavePercentage = ((leaveCount / totalCount) * 100).toFixed(2);
+      const latePercentage = ((lateCount / totalCount) * 100).toFixed(2);
+
+      const flexMessage = {
+        type: 'flex',
+        altText: 'Attendance Summary',
+        contents: {
+          type: 'bubble',
+          size: 'giga',
+          body: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [
+              {
+                type: 'text',
+                text: `สรุปการมาเรียน`,
+                weight: 'bold',
+                size: 'xl',
+                color: '#1DB446',
+                margin: 'md'
+              },
+              {
+                type: 'text',
+                text: `ชั้น ${$('#sheet-selector').val()}`,
+                size: 'md',
+                color: '#888888'
+              },
+              {
+                type: 'text',
+                text: `วันที่ ${attendanceRecords[0].date}`,
+                size: 'md',
+                color: '#888888'
+              },
+              {
+                type: 'separator',
+                margin: 'md'
+              },
+              {
+                type: 'box',
+                layout: 'vertical',
+                margin: 'md',
+                spacing: 'sm',
+                contents: attendanceRecords.map((record, index) => ({
+                  type: 'box',
+                  layout: 'horizontal',
+                  contents: [
+                    {
+                      type: 'text',
+                      text: `${index + 1}. ${record.name}`,
+                      size: 'md',
+                      color: '#555555',
+                      flex: 4
+                    },
+                    {
+                      type: 'text',
+                      text: record.status,
+                      size: 'md',
+                      color: record.status === 'มา' ? '#1DB446' :
+                            record.status === 'ขาด' ? '#FF5555' :
+                            record.status === 'ลา' ? '#FFC107' : '#FF8800',
+                      flex: 2,
+                      align: 'end'
+                    }
+                  ]
+                }))
+              },
+              {
+                type: 'separator',
+                margin: 'md'
+              },
+              {
+                type: 'box',
+                layout: 'vertical',
+                margin: 'md',
+                contents: [
+                  {
+                    type: 'box',
+                    layout: 'horizontal',
+                    contents: [
+                      {
+                        type: 'text',
+                        text: 'มาเรียน:',
+                        size: 'md',
+                        color: '#1DB446',
+                        flex: 3
+                      },
+                      {
+                        type: 'text',
+                        text: `${presentCount} คน (${presentPercentage}%)`,
+                        size: 'md',
+                        color: '#1DB446',
+                        flex: 2,
+                        align: 'end'
+                      }
+                    ]
+                  },
+                  {
+                    type: 'box',
+                    layout: 'horizontal',
+                    contents: [
+                      {
+                        type: 'text',
+                        text: 'ขาดเรียน:',
+                        size: 'md',
+                        color: '#FF5555',
+                        flex: 3
+                      },
+                      {
+                        type: 'text',
+                        text: `${absentCount} คน (${absentPercentage}%)`,
+                        size: 'md',
+                        color: '#FF5555',
+                        flex: 2,
+                        align: 'end'
+                      }
+                    ]
+                  },
+                  {
+                    type: 'box',
+                    layout: 'horizontal',
+                    contents: [
+                      {
+                        type: 'text',
+                        text: 'ลา:',
+                        size: 'md',
+                        color: '#FFC107',
+                        flex: 3
+                      },
+                      {
+                        type: 'text',
+                        text: `${leaveCount} คน (${leavePercentage}%)`,
+                        size: 'md',
+                        color: '#FFC107',
+                        flex: 2,
+                        align: 'end'
+                      }
+                    ]
+                  },
+                  {
+                    type: 'box',
+                    layout: 'horizontal',
+                    contents: [
+                      {
+                        type: 'text',
+                        text: 'สาย:',
+                        size: 'md',
+                        color: '#FF8800',
+                        flex: 3
+                      },
+                      {
+                        type: 'text',
+                        text: `${lateCount} คน (${latePercentage}%)`,
+                        size: 'md',
+                        color: '#FF8800',
+                        flex: 2,
+                        align: 'end'
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          styles: {
+            footer: {
+              separator: true
+            }
+          }
+        }
+      };
+
+      liff.shareTargetPicker([flexMessage])
+        .then((result) => {
+          if (result) {
+            Swal.fire('Success', 'แชร์สรุปการมาเรียนเรียบร้อย!', 'success');
+          } else {
+            Swal.fire('Info', 'ปิดการแชร์โดยไม่ได้ส่งข้อความ', 'info');
+          }
+        })
+        .catch((error) => {
+          Swal.fire('Error', 'เกิดข้อผิดพลาดในการแชร์สรุปการมาเรียน: ' + error, 'error');
+        });
+    }
+  </script>
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.min.js"></script>
+
+</body>
+</html>
