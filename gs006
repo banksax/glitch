@@ -1,0 +1,73 @@
+function doPost(e) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(e.parameter.sheetName); 
+  const data = JSON.parse(e.parameter.data); 
+
+  const dateString = data[0].date; 
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  let columnIndex = headers.indexOf(dateString) + 1;
+
+  if (columnIndex === 0) {
+    columnIndex = sheet.getLastColumn() + 1;
+    sheet.getRange(1, columnIndex).setValue(dateString); 
+  }
+
+  const studentIds = sheet.getRange(2, 2, sheet.getLastRow() - 1).getValues().flat();
+
+  const updates = data.map(record => {
+    const rowIndex = studentIds.indexOf(record.studentId.trim()) + 2;
+    return [rowIndex, columnIndex, record.status];
+  }).filter(update => update[0] > 1); 
+
+  updates.forEach(update => {
+    sheet.getRange(update[0], update[1]).setValue(update[2]);
+  });
+
+  return ContentService.createTextOutput(JSON.stringify({ status: 'success' })).setMimeType(ContentService.MimeType.JSON);
+}
+
+
+
+function doGet(e) {
+  if (e.parameter.date && e.parameter.sheetName) {
+    return checkDuplicateAttendance(e);
+  } else {
+    return getSheetNames();
+  }
+}
+
+function checkDuplicateAttendance(e) {
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(e.parameter.sheetName);
+  const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+  // แปลงวันที่ให้ตรงกับรูปแบบในชีท
+  const inputDate = new Date(e.parameter.date).toLocaleDateString("th-TH", { year: 'numeric', month: 'long', day: 'numeric' });
+  
+  const dateIndex = headers.indexOf(inputDate) + 1;
+  const result = { isDuplicate: false, attendanceRecords: [] };
+
+  if (dateIndex > 0) {
+    const studentIds = sheet.getRange(2, 2, sheet.getLastRow() - 1).getValues().flat();
+    const records = sheet.getRange(2, dateIndex, sheet.getLastRow() - 1).getValues().flat();
+
+    if (records.some(record => record !== "")) {
+      result.isDuplicate = true;
+      result.attendanceRecords = studentIds.map((id, index) => ({
+        studentId: id,
+        status: records[index] || 'ไม่มีข้อมูล' // ถ้าไม่มีสถานะแสดง "ไม่มีข้อมูล"
+      }));
+    }
+  }
+
+  return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
+}
+
+
+
+
+
+
+function getSheetNames() {
+  const sheets = SpreadsheetApp.getActiveSpreadsheet().getSheets();
+  const sheetNames = sheets.slice(4).map(sheet => sheet.getName()); 
+  return ContentService.createTextOutput(JSON.stringify(sheetNames)).setMimeType(ContentService.MimeType.JSON);
+}
